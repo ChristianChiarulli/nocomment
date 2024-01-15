@@ -97,7 +97,7 @@ export function NoComment({
 
     // search for the base event based on the #r tag (url)
     pool.current
-      .list(chosenRelays, [
+      .querySync(chosenRelays, [
         {
           '#r': [url],
           kinds: [1]
@@ -122,23 +122,28 @@ export function NoComment({
     if (!baseTag) return
 
     // query for comments
-    let sub = pool.current.sub(chosenRelays, [
-      {
-        ...baseTag.filter,
-        kinds: [1]
-      }
-    ])
-
     let i = 0
-    sub.on('event', event => {
-      setEvents(events => insertEventIntoDescendingList(events, event))
-      fetchMetadata(event.pubkey, i)
-      i++
-    })
-
-    return () => {
-      sub.unsub()
-    }
+    const h = pool.current.subscribeMany(
+      chosenRelays,
+      [
+        {
+          ...baseTag.filter,
+          kinds: [1]
+        }
+      ],
+      {
+        onevent(event) {
+          console.log('SOME EVENT: ', event)
+          setEvents(events => insertEventIntoDescendingList(events, event))
+          fetchMetadata(event.pubkey, i)
+          i++
+        },
+        oneose() {
+          console.log('DONE')
+          h.close()
+        }
+      }
+    )
   }, [baseTag, chosenRelays.length])
 
   if (skip && skip !== '' && skip === location.pathname) {
@@ -198,31 +203,39 @@ export function NoComment({
 
     let done = 0
 
-    let sub = pool.current.sub(chosenRelays, [{kinds: [0], authors: [pubkey]}])
-    done++
-    sub.on('event', event => {
-      if (!metadata[pubkey] || metadata[pubkey].created_at < event.created_at) {
-        setMetadata(curr => {
-          try {
-            return {
-              ...curr,
-              [pubkey]: {
-                ...JSON.parse(event.content),
-                created_at: event.created_at
+    const h = pool.current.subscribeMany(
+      chosenRelays,
+      [{kinds: [0], authors: [pubkey]}],
+      {
+        onevent(event) {
+          if (
+            !metadata[pubkey] ||
+            metadata[pubkey].created_at < event.created_at
+          ) {
+            setMetadata(curr => {
+              try {
+                return {
+                  ...curr,
+                  [pubkey]: {
+                    ...JSON.parse(event.content),
+                    created_at: event.created_at
+                  }
+                }
+              } catch {
+                return curr
               }
-            }
-          } catch {
-            return curr
+            })
           }
-        })
+        },
+        oneose() {
+          h.close()
+          done--
+          if (done === 0) fetchNIP05(pubkey, metadata[pubkey])
+        }
       }
-    })
-    sub.on('eose', () => {
-      sub.unsub()
-      done--
+    )
 
-      if (done === 0) fetchNIP05(pubkey, metadata[pubkey])
-    })
+    done++
   }
 
   async function fetchNIP05(pubkey, meta) {

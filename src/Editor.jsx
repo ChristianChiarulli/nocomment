@@ -10,10 +10,10 @@ import {
   Notices
 } from './components'
 import {
-  generatePrivateKey,
+  generateSecretKey,
   getPublicKey,
-  getEventHash,
-  signEvent
+  finalizeEvent
+  // signEvent
 } from 'nostr-tools'
 
 export function Editor({
@@ -96,11 +96,13 @@ export function Editor({
       } catch (err) {}
     } else {
       // otherwise use a key from localStorage or generate a new one
-      let privateKey = localStorage.getItem('nostrkey')
-      if (!privateKey || privateKey.match(/^[a-f0-9]{64}$/)) {
-        privateKey = generatePrivateKey()
-        localStorage.setItem('nostrkey', privateKey)
-      }
+      // let privateKey = localStorage.getItem('nostrkey')
+      // if (!privateKey || privateKey.match(/^[a-f0-9]{64}$/)) {
+      let privateKey = generateSecretKey()
+      console.log('generated key: ', privateKey)
+      //   localStorage.setItem('nostrkey', privateKey)
+      // }
+      // const res = new TextEncoder().encode(privateKey)
       setPrivateKey(privateKey)
       setPublicKey(getPublicKey(privateKey))
     }
@@ -112,7 +114,7 @@ export function Editor({
     let rootReference = baseTag?.reference
     if (!rootReference) {
       // create base event right here
-      let sk = generatePrivateKey()
+      let sk = generateSecretKey()
       let tags = [['r', url]]
       if (ownerTag) {
         tags.push(ownerTag)
@@ -124,8 +126,9 @@ export function Editor({
         tags: tags,
         content: `Comments on ${url}` + (ownerTag ? ` by #[1]` : '') + ` ↴`
       }
-      root.id = getEventHash(root)
-      root.sig = signEvent(root, sk)
+      // root.id = getEventHash(root)
+      // root.sig = signEvent(root, sk)
+      root = finalizeEvent(root, sk)
       rootReference = ['e', root.id, '', 'root']
       setBaseTag({filter: {'#e': [root.id]}, reference: rootReference})
 
@@ -159,8 +162,7 @@ export function Editor({
 
     // if we have a private key that means it was generated locally and we don't have a nip07 extension
     if (privateKey) {
-      event.id = getEventHash(event)
-      event.sig = signEvent(event, privateKey)
+      event = finalizeEvent(event, privateKey)
     } else {
       try {
         event = await window.nostr.signEvent(event)
@@ -182,13 +184,20 @@ export function Editor({
 
     console.log('publishing...')
 
-    let pub = pool.current.publish(relays, event)
-    pub.on('ok', relay => {
-      clearTimeout(publishTimeout)
-      showNotice(`event ${event.id.slice(0, 5)}… published to ${relay}.`)
-      setComment('')
-      setEditable(true)
-    })
+    let pub = await pool.current.publish(relays, event)
+
+    // TODO: check if it was published to at least one relay
+
+    console.log('published: ', pub)
+
+    clearTimeout(publishTimeout)
+    console.log('2')
+    // showNotice(`event ${event.id.slice(0, 5)}… published to ${relay}.`)
+    console.log('3')
+    setComment('')
+    console.log('4')
+    setEditable(true)
+    console.log('5')
   }
 
   function showNotice(text) {
