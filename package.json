@@ -1,6 +1,6 @@
 {
-  "name": "react-nocomment",
-  "version": "0.3.0",
+  "name": "react-nocomment-fork",
+  "version": "0.4.0",
   "description": "This is an embeddable Nostr comments widget that just works",
   "main": "lib/index.js",
   "module": "lib/index.js",
@@ -11,7 +11,8 @@
   },
   "author": [
     "fiatjaf",
-    "saiy2k"
+    "saiy2k",
+    "christianchiarulli"
   ],
   "license": "MIT",
   "repository": "https://github.com/fiatjaf/nocomment",

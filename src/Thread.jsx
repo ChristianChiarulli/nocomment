@@ -48,9 +48,9 @@ export default function Thread({
         >
           {dayjs(thread.created_at * 1000).from(new Date())}
         </CommentDate>
-        <ReplyButton onClick={() => setExpanded(!expanded)} />
       </div>
       <CommentContent>{thread.content}</CommentContent>
+      <ReplyButton onClick={() => setExpanded(!expanded)} />
       {expanded && <ReplyWrap>{replyForm(thread.id)}</ReplyWrap>}
       <div
         style={{

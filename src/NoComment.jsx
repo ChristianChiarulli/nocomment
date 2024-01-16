@@ -13,6 +13,8 @@ export function NoComment({
   relays = [],
   owner,
   skip,
+  publicKey,
+  privateKey,
   customBase,
   placeholder
 }) {
@@ -78,18 +80,18 @@ export function NoComment({
   }
 
   const [baseTagImmediate, setBaseTag] = useState(customBaseTag)
-  const [publicKey, setPublicKey] = useState(null)
-  const [eventsImmediate, setEvents] = useState([])
+  const [_publicKey, setPublicKey] = useState(publicKey)
+  const [events, setEvents] = useState([])
   const [metadata, setMetadata] = useState({})
   const metadataFetching = useRef({})
   const pool = useRef(new SimplePool())
   const [baseTag] = useDebounce(baseTagImmediate, 1000)
-  const [events] = useDebounce(eventsImmediate, 1000, {leading: true})
+  // const [events] = useDebounce(eventsImmediate, 1000, {leading: true})
   const threads = useMemo(() => {
     if (!baseTag) return
     return computeThreads(baseTag, events)
   }, [baseTag, events])
-  const [privateKey, setPrivateKey] = useState(null)
+  const [_privateKey, setPrivateKey] = useState(privateKey)
   const [chosenRelays, setChosenRelays] = useState(relays)
 
   useEffect(() => {
@@ -119,6 +121,10 @@ export function NoComment({
   }, [chosenRelays.length])
 
   useEffect(() => {
+    console.log('events changed: ', events)
+  }, [events])
+
+  useEffect(() => {
     if (!baseTag) return
 
     // query for comments
@@ -133,17 +139,19 @@ export function NoComment({
       ],
       {
         onevent(event) {
-          console.log('SOME EVENT: ', event)
+          console.log('NEW EVENT: ', event)
           setEvents(events => insertEventIntoDescendingList(events, event))
           fetchMetadata(event.pubkey, i)
           i++
         },
         oneose() {
-          console.log('DONE')
           h.close()
         }
       }
     )
+    return () => {
+      h.close()
+    }
   }, [baseTag, chosenRelays.length])
 
   if (skip && skip !== '' && skip === location.pathname) {
@@ -169,12 +177,14 @@ export function NoComment({
   )
 
   function editor(parentId) {
-    let selfName = getName(metadata, publicKey)
+    let selfName = getName(metadata, _publicKey)
     return (
       <Editor
-        publicKey={publicKey}
+        setEvents={setEvents}
+        fetchMetadata={fetchMetadata}
+        publicKey={_publicKey}
         setPublicKey={setPublicKey}
-        privateKey={privateKey}
+        privateKey={_privateKey}
         setPrivateKey={setPrivateKey}
         baseTag={baseTag}
         ownerTag={ownerTag}
@@ -206,6 +216,7 @@ export function NoComment({
     const h = pool.current.subscribeMany(
       chosenRelays,
       [{kinds: [0], authors: [pubkey]}],
+
       {
         onevent(event) {
           if (
@@ -234,7 +245,6 @@ export function NoComment({
         }
       }
     )
-
     done++
   }
 

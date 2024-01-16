@@ -9,14 +9,13 @@ import {
   Notice,
   Notices
 } from './components'
-import {
-  generateSecretKey,
-  getPublicKey,
-  finalizeEvent
-  // signEvent
-} from 'nostr-tools'
+import {generateSecretKey, getPublicKey, finalizeEvent} from 'nostr-tools'
+
+import {insertEventIntoDescendingList} from './util'
 
 export function Editor({
+  setEvents,
+  fetchMetadata,
   publicKey,
   setPublicKey,
   privateKey,
@@ -75,10 +74,18 @@ export function Editor({
             onClick={publicKey ? publishEvent : establishNostrKey}
             disabled={!editable || comment.trim() === ''}
             aria-label={
-              publicKey ? (editable ? 'Post comment' : 'Submitting') : 'Comment'
+              publicKey
+                ? editable
+                  ? 'Post comment'
+                  : 'Submitting'
+                : 'Login to comment'
             }
           >
-            {publicKey ? (editable ? 'Post comment' : 'Submitting') : 'Comment'}
+            {publicKey
+              ? editable
+                ? 'Post comment'
+                : 'Submitting'
+              : 'Login to comment'}
           </PostButton>
         </InputSectionRow2>
       </InputSection>
@@ -89,23 +96,17 @@ export function Editor({
 
   async function establishNostrKey() {
     // check if they have a nip07 nostr extension
-    if (window.nostr) {
-      try {
-        // and if it has a key stored on it
-        setPublicKey(await window.nostr.getPublicKey())
-      } catch (err) {}
-    } else {
-      // otherwise use a key from localStorage or generate a new one
-      // let privateKey = localStorage.getItem('nostrkey')
-      // if (!privateKey || privateKey.match(/^[a-f0-9]{64}$/)) {
-      let privateKey = generateSecretKey()
-      console.log('generated key: ', privateKey)
-      //   localStorage.setItem('nostrkey', privateKey)
-      // }
-      // const res = new TextEncoder().encode(privateKey)
-      setPrivateKey(privateKey)
-      setPublicKey(getPublicKey(privateKey))
-    }
+    // if (window.nostr) {
+    //   try {
+    //     setPublicKey(await window.nostr.getPublicKey())
+    //   } catch (err) {}
+    // } else {
+    //   let privateKey = generateSecretKey()
+    //   console.log('generated key: ', privateKey)
+    //   setPrivateKey(privateKey)
+    //   setPublicKey(getPublicKey(privateKey))
+    // }
+    console.log('establishNostrKey')
   }
 
   async function publishEvent() {
@@ -161,6 +162,7 @@ export function Editor({
     console.log('event: ', event)
 
     // if we have a private key that means it was generated locally and we don't have a nip07 extension
+    console.log('PRIVATEKEY: ', privateKey)
     if (privateKey) {
       event = finalizeEvent(event, privateKey)
     } else {
@@ -184,20 +186,17 @@ export function Editor({
 
     console.log('publishing...')
 
-    let pub = await pool.current.publish(relays, event)
+    let pub = await Promise.any(pool.current.publish(relays, event))
 
-    // TODO: check if it was published to at least one relay
-
-    console.log('published: ', pub)
-
-    clearTimeout(publishTimeout)
-    console.log('2')
-    // showNotice(`event ${event.id.slice(0, 5)}… published to ${relay}.`)
-    console.log('3')
-    setComment('')
-    console.log('4')
-    setEditable(true)
-    console.log('5')
+    if (pub !== null) {
+      setEvents(events => insertEventIntoDescendingList(events, event))
+      fetchMetadata(event.pubkey, 1)
+      console.log('published: ', pub)
+      clearTimeout(publishTimeout)
+      showNotice(`event ${event.id.slice(0, 5)}… published to ${'relay'}.`)
+      setComment('')
+      setEditable(true)
+    }
   }
 
   function showNotice(text) {

@@ -4,7 +4,6 @@ export const Container = styled.div`
   box-shadow: 0px 6px 5px -3px rgba(0, 0, 0, 0nc-1);
   background-color: var(--nc-background, white);
   color: var(--nc-text-color, #888);
-  padding: 18px;
   border-radius: 8px;
   font-family: var(--nc-container-font-family, arial);
   font-size: var(--nc-container-font-size, 1.2em);
@@ -58,21 +57,21 @@ export const PostButton = styled.button`
   flex: none;
 
   &:hover {
-    color: var(--nc-primary-color, #0d6efd);
-    border: 1px solid var(--nc-primary-color, #0d6efd);
-    background: var(--nc-background, white);
+    background: var(--nc-hover-background, white);
   }
 `
 
 export const GhostButton = styled.button`
   background: var(--nc-ghost-background, transparent);
-  color: var(--nc-text-color, black);
+  color: var(--nc-text-color, #666);
   min-width: 25px;
   min-height: 25px;
-  border: none;
+  padding: 0.25rem;
 
   cursor: pointer;
-  margin: 0 8px;
+  font-size: 0.95rem;
+  margin: 8px 0;
+
   &:hover {
     color: var(--nc-text-color, #222);
   }
@@ -151,6 +150,7 @@ export const CommentDate = styled.a`
 `
 
 export const CommentContent = styled.div`
+  color: var(--nc-comment-content-color, #222);
   margin-top: 8px;
   max-height: 306px;
   max-width: 600px;
