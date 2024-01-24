@@ -121,10 +121,6 @@ export function NoComment({
   }, [chosenRelays.length])
 
   useEffect(() => {
-    console.log('events changed: ', events)
-  }, [events])
-
-  useEffect(() => {
     if (!baseTag) return
 
     // query for comments
@@ -139,7 +135,6 @@ export function NoComment({
       ],
       {
         onevent(event) {
-          console.log('NEW EVENT: ', event)
           setEvents(events => insertEventIntoDescendingList(events, event))
           fetchMetadata(event.pubkey, i)
           i++

@@ -94,21 +94,6 @@ export function Editor({
     </>
   )
 
-  async function establishNostrKey() {
-    // check if they have a nip07 nostr extension
-    // if (window.nostr) {
-    //   try {
-    //     setPublicKey(await window.nostr.getPublicKey())
-    //   } catch (err) {}
-    // } else {
-    //   let privateKey = generateSecretKey()
-    //   console.log('generated key: ', privateKey)
-    //   setPrivateKey(privateKey)
-    //   setPublicKey(getPublicKey(privateKey))
-    // }
-    console.log('establishNostrKey')
-  }
-
   async function publishEvent() {
     setEditable(false)
 
@@ -144,7 +129,6 @@ export function Editor({
       })
     }
 
-    console.log('base: ', rootReference)
 
     let inReplyTo = []
     if (parentId) {
@@ -159,10 +143,8 @@ export function Editor({
       content: comment
     }
 
-    console.log('event: ', event)
 
     // if we have a private key that means it was generated locally and we don't have a nip07 extension
-    console.log('PRIVATEKEY: ', privateKey)
     if (privateKey) {
       event = finalizeEvent(event, privateKey)
     } else {
@@ -184,14 +166,12 @@ export function Editor({
       setEditable(true)
     }, 8000)
 
-    console.log('publishing...')
 
     let pub = await Promise.any(pool.current.publish(relays, event))
 
     if (pub !== null) {
       setEvents(events => insertEventIntoDescendingList(events, event))
       fetchMetadata(event.pubkey, 1)
-      console.log('published: ', pub)
       clearTimeout(publishTimeout)
       showNotice(`event ${event.id.slice(0, 5)}… published to ${'relay'}.`)
       setComment('')
